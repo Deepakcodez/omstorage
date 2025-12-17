@@ -1,25 +1,38 @@
-package main;
+package main
 
 import (
 	"log"
 	"os"
 
+	"github.com/deepakcodez/omstorage/internal/db"
+	"github.com/deepakcodez/omstorage/internal/handler"
+	"github.com/deepakcodez/omstorage/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/deepakcodez/omstorage/internal/handler" 
 )
 
 func main() {
 	// 1. Load Environment Variables
+	// Try loading from .env, but don't crash if it's missing (Docker/Prod environment)
 	if err := godotenv.Load(); err != nil {
-		log.Println("Note: No .env file found. Using environment variables.")
+		log.Println("Note: No .env file found or error loading it. Using environment variables.")
 	}
 
-	// 2. Setup Gin Router
+	// 2. Setup Database
+	if err := db.Connect(); err != nil {
+		log.Printf("⚠️ Database connection failed: %v", err)
+		log.Println("Server will start but DB features will fail.")
+	} else if db.GetDB() != nil {
+		log.Println("Running AutoMigrate...")
+		if err := db.GetDB().AutoMigrate(&models.FileMetadata{}); err != nil {
+			log.Printf("Migration failed: %v", err)
+		}
+	}
+
+	// 3. Setup Gin Router
 	router := gin.Default()
 
 	// Setting a higher limit for multipart forms (e.g., 64 MiB) for videos.
-	// Default is 32 MiB. Adjust based on your server capacity and needs.
 	router.MaxMultipartMemory = 64 << 20 // 64 MiB
 
 	// Retrieve config from .env or OS environment
@@ -32,24 +45,25 @@ func main() {
 		publicPrefix = "/storage"
 	}
 
-	// 3. Define Routes
+	// 4. Define Routes
 
-	// UPLOAD Route (Accepts file and stores it)
+	// UPLOAD Routes
 	router.POST("/v1/upload/single/:projectID", handler.UploadSingleFile)
+	router.POST("/v1/upload/multiple/:projectID", handler.UploadMultipleFiles)
 
-	// RETRIEVAL Route (Serves the file at a public URL)
-	// We use Gin's Static function for simple serving, but the handler approach 
-	// (shown in storage.go) is better for security/DB lookup.
-	// This creates a route like: /storage/proj1/file-hash.jpg
+	// RETRIEVAL Routes (Metadata/API)
+	router.GET("/v1/files/:projectID", handler.GetImagesByOrganization)
+	router.GET("/v1/file/:id", handler.GetImage)
+
+	// Static File Serving
 	router.Static(publicPrefix, storageRoot)
 
-
-	// 4. Run Server
+	// 5. Run Server
 	port := os.Getenv("SERVER_PORT")
 	if port == "" {
 		port = "8080"
 	}
-	
+
 	log.Printf("🚀 Server running on :%s", port)
 	log.Printf("📂 Public storage prefix: %s", publicPrefix)
 	if err := router.Run(":" + port); err != nil {
