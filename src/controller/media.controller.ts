@@ -217,7 +217,7 @@ export const uploadVideoMedia = async (c: Context) => {
         const projectName = (formData.get("project") as string) || "default"
 
 
-        console.log("file", file)
+       
         if (!file) {
             return c.json({ error: "No file uploaded" }, 400)
         }
@@ -232,7 +232,7 @@ export const uploadVideoMedia = async (c: Context) => {
 
         const buffer = Buffer.from(await file.arrayBuffer())
 
-        console.log("buffer", buffer)
+       
 
         // SHA256 checksum
         const checksum = crypto
