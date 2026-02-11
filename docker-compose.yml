@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: omstorage
+    restart: always
+    environment:
+      POSTGRES_USER: omstorage
+      POSTGRES_PASSWORD: omstorage
+      POSTGRES_DB: omstorage
+    ports:
+      - "5432:5432"
+    volumes:
+      - omstorage_data:/var/lib/postgresql/data
+
+volumes:
+  omstorage_data:

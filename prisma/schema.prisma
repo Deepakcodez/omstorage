@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  name        String?
+  project     String
+  url         String
+  type        MediaType
+  mimeType    String?
+  thumbhash   String?
+  blurDataUrl String?
+  checksum    String?   @unique
+  videoThumbnail String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([project])
+  @@index([name])
+  @@index([checksum])
+  @@index([createdAt])
+}
