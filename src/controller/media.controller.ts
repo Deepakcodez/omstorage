@@ -17,7 +17,7 @@ ffmpeg.setFfmpegPath(ffmpegPath as string)
 
 
 
-export const uploadImageMedia = async (c: Context) => {
+export const uploadImageMedia = async (c: Context)  => {
     try {
         const formData = await c.req.formData()
         const file = formData.get("file") as File
@@ -93,10 +93,10 @@ export const uploadImageMedia = async (c: Context) => {
             message: "Image uploaded successfully",
             success: true,
             data: {
+                name: media.name,
                 url: media.url,
                 thumbhash: media.thumbhash,
                 blurDataUrl: media.blurDataUrl,
-                name: media.name,
             }
         })
 
@@ -190,6 +190,7 @@ export const uploadMultipleImageMedia = async (c: Context) => {
                 })
 
                 results.push({
+                    name: media.name,
                     url: media.url,
                     thumbhash: media.thumbhash,
                     blurDataUrl: media.blurDataUrl,
@@ -217,7 +218,7 @@ export const uploadVideoMedia = async (c: Context) => {
         const projectName = (formData.get("project") as string) || "default"
 
 
-       
+
         if (!file) {
             return c.json({ error: "No file uploaded" }, 400)
         }
@@ -232,7 +233,7 @@ export const uploadVideoMedia = async (c: Context) => {
 
         const buffer = Buffer.from(await file.arrayBuffer())
 
-       
+
 
         // SHA256 checksum
         const checksum = crypto
@@ -257,7 +258,7 @@ export const uploadVideoMedia = async (c: Context) => {
         const videoFileName = `${file.name}-${videoId}.${ext}`
         const videoPath = path.join(uploadDir, videoFileName)
 
-        const storageKey = `${projectName}/${videoFileName}`
+        const storageKey = `/uploads/${projectName}/${videoFileName}`
 
         // Save original video
         await writeFile(videoPath, buffer)
@@ -266,8 +267,13 @@ export const uploadVideoMedia = async (c: Context) => {
         // Generate thumbnail
         const thumbnailName = `${videoId}.webp`
         const thumbnailPath = path.join(uploadDir, thumbnailName)
-        const thumbnailKey = `${projectName}/${thumbnailName}`
+        const thumbnailKey = `/uploads/${projectName}/${thumbnailName}`
         await writeFile(thumbnailPath, thumbnailBuffer)
+
+
+        // 🔥 Generate thumbhash & blur from thumbnail buffer
+        const thumbhash = await generateThumbhash(thumbnailBuffer)
+        const blurDataUrl = await generateLQIP(thumbnailBuffer)
 
         // Save in DB
         const media = await db.media.create({
@@ -278,8 +284,8 @@ export const uploadVideoMedia = async (c: Context) => {
                 url: storageKey,
                 mimeType: file.type,
                 checksum,
-                thumbhash: null,
-                blurDataUrl: null,
+                thumbhash,
+                blurDataUrl,
                 videoThumbnail: thumbnailKey
             }
         })
@@ -288,8 +294,11 @@ export const uploadVideoMedia = async (c: Context) => {
             message: "Video uploaded successfully",
             success: true,
             data: {
+                name: media.name,
                 url: media.url,
                 videoThumbnail: media.videoThumbnail,
+                thumbhash: media.thumbhash,
+                blurDataUrl: media.blurDataUrl,
             }
         })
 

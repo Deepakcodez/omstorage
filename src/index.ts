@@ -12,7 +12,7 @@ app.use("*", cors({
     allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
     allowMethods: ["POST", "GET", "PUT", "PATCH", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
-    credentials: true,
+    // credentials: true,
 }));
 
 
