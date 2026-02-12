@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { routes } from './router';
+import { serveStatic } from "hono/bun"
 
 const app = new Hono()
 
@@ -8,11 +9,16 @@ const port = Number(process.env.PORT) || 8000
 
 app.use("*", cors({
     origin: ["*"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
     allowMethods: ["POST", "GET", "PUT", "PATCH", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     credentials: true,
 }));
+
+
+app.use("/uploads/*", serveStatic({
+    root: "./"
+}))
 
 
 app.get('/', (c) => {
