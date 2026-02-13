@@ -17,7 +17,7 @@ ffmpeg.setFfmpegPath(ffmpegPath as string)
 
 
 
-export const uploadImageMedia = async (c: Context)  => {
+export const uploadImageMedia = async (c: Context) => {
     try {
         const formData = await c.req.formData()
         const file = formData.get("file") as File
@@ -93,6 +93,7 @@ export const uploadImageMedia = async (c: Context)  => {
             message: "Image uploaded successfully",
             success: true,
             data: {
+                imageId : media.id,
                 name: media.name,
                 url: media.url,
                 thumbhash: media.thumbhash,
@@ -190,6 +191,7 @@ export const uploadMultipleImageMedia = async (c: Context) => {
                 })
 
                 results.push({
+                    imageId : media.id,
                     name: media.name,
                     url: media.url,
                     thumbhash: media.thumbhash,
@@ -294,6 +296,7 @@ export const uploadVideoMedia = async (c: Context) => {
             message: "Video uploaded successfully",
             success: true,
             data: {
+                videoId : media.id,
                 name: media.name,
                 url: media.url,
                 videoThumbnail: media.videoThumbnail,
@@ -322,5 +325,108 @@ export const getMedia = async (c: Context) => {
     } catch (error) {
         console.error(error)
         return c.json({ error: "Failed to get media" }, 500)
+    }
+}
+
+export const getAllMedia = async (c: Context) => {
+    try {
+        const media = await db.media.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            }
+        })
+        return c.json({
+            success: true,
+            count: media.length,
+            data: media
+        })
+    } catch (error) {
+        console.error(error)
+        return c.json({ error: "Failed to get media" }, 500)
+    }
+}
+
+export const getMediaByProject = async (c: Context) => {
+    try {
+        const { project } = c.req.param()
+        const media = await db.media.findMany({
+            where: { project },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        })
+        return c.json({
+            success: true,
+            project,
+            count: media.length,
+            data: media
+        })
+    } catch (error) {
+        console.error(error)
+        return c.json({ error: "Failed to get media" }, 500)
+    }
+}
+
+export const deleteMedia = async (c: Context) => {
+    try {
+        const { id } = c.req.param()
+
+        // Find the media first
+        const media = await db.media.findUnique({
+            where: { id }
+        })
+
+        if (!media) {
+            return c.json({ error: "Media not found" }, 404)
+        }
+
+        // Delete from filesystem
+        const filePath = path.join(process.cwd(), media.url)
+
+        try {
+            await Bun.file(filePath).exists().then(async (exists) => {
+                if (exists) {
+                    await Bun.write(filePath, "")
+                    await import("fs/promises").then(fs => fs.unlink(filePath))
+                }
+            })
+        } catch (fileError) {
+            console.error("File deletion error:", fileError)
+            // Continue even if file deletion fails
+        }
+
+        // If it's a video, also delete the thumbnail
+        if (media.type === "VIDEO" && media.videoThumbnail) {
+            const thumbnailPath = path.join(process.cwd(), media.videoThumbnail)
+            try {
+                await Bun.file(thumbnailPath).exists().then(async (exists) => {
+                    if (exists) {
+                        await Bun.write(thumbnailPath, "")
+                        await import("fs/promises").then(fs => fs.unlink(thumbnailPath))
+                    }
+                })
+            } catch (thumbError) {
+                console.error("Thumbnail deletion error:", thumbError)
+            }
+        }
+
+        // Delete from database
+        await db.media.delete({
+            where: { id }
+        })
+
+        return c.json({
+            success: true,
+            message: "Media deleted successfully",
+            data: {
+                id: media.id,
+                name: media.name,
+                url: media.url
+            }
+        })
+
+    } catch (error) {
+        console.error(error)
+        return c.json({ error: "Failed to delete media" }, 500)
     }
 }
