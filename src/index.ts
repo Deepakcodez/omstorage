@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors';
 import { routes } from './router';
 import { serveStatic } from "hono/bun"
+import { galleryAuthMiddleware } from './middleware/galleryAuth';
 
 const app = new Hono()
 
@@ -28,7 +29,7 @@ app.get('/', (c) => {
     return c.json({ message: 'Media Service Running 🚀' })
 })
 
-app.get('/gallery', async (c) => {
+app.get('/gallery', galleryAuthMiddleware, async (c) => {
     return c.html(await Bun.file('./public/gallery.html').text())
 })
 
