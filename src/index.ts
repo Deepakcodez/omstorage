@@ -7,6 +7,7 @@ const app = new Hono()
 
 const port = Number(process.env.PORT) || 8000
 // test cicd from deploy sh
+//this is from github action
 app.use("*", cors({
     origin: ["*"],
     allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
