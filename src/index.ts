@@ -6,10 +6,7 @@ import { serveStatic } from "hono/bun"
 const app = new Hono()
 
 const port = Number(process.env.PORT) || 8000
-// test cicd from deploy sh
-//this is from github action
-//this is from github action 2
-//this is from github action 3
+// this is from client
 app.use("*", cors({
     origin: ["*"],
     allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
