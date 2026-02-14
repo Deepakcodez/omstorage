@@ -48,13 +48,13 @@ export const uploadImageMedia = async (c: Context) => {
             .digest("hex")
 
         // Check duplicate
-        const existing = await db.media.findUnique({
-            where: { checksum }
-        })
+        // const existing = await db.media.findUnique({
+        //     where: { checksum }
+        // })
 
-        if (existing) {
-            return c.json({ error: "File already exists" }, 400)
-        }
+        // if (existing) {
+        //     return c.json({ error: "File already exists" }, 400)
+        // }
         // Create upload directory
         const uploadDir = path.join(process.cwd(), "uploads", projectName)
         await mkdir(uploadDir, { recursive: true })
