@@ -42,10 +42,10 @@ export const uploadImageMedia = async (c: Context) => {
         const buffer = Buffer.from(await file.arrayBuffer())
 
         // SHA256 checksum (dedup support)
-        const checksum = crypto
-            .createHash("sha256")
-            .update(buffer)
-            .digest("hex")
+        // const checksum = crypto
+        //     .createHash("sha256")
+        //     .update(buffer)
+        //     .digest("hex")
 
         // Check duplicate
         // const existing = await db.media.findUnique({
@@ -85,7 +85,7 @@ export const uploadImageMedia = async (c: Context) => {
                 mimeType: "image/webp",
                 thumbhash,
                 blurDataUrl,
-                checksum
+                // checksum
             }
         })
 
@@ -137,14 +137,14 @@ export const uploadMultipleImageMedia = async (c: Context) => {
                 .update(buffer)
                 .digest("hex")
 
-            const existing = await db.media.findUnique({
-                where: { checksum }
-            })
+            // const existing = await db.media.findUnique({
+            //     where: { checksum }
+            // })
 
-            if (existing) {
-                results.push({ name: file.name, error: "Duplicate file" })
-                continue
-            }
+            // if (existing) {
+            //     results.push({ name: file.name, error: "Duplicate file" })
+            //     continue
+            // }
 
             const fileId = crypto.randomUUID()
 
@@ -186,7 +186,7 @@ export const uploadMultipleImageMedia = async (c: Context) => {
                         mimeType: "image/webp",
                         thumbhash,
                         blurDataUrl,
-                        checksum
+                        // checksum
                     }
                 })
 
@@ -238,18 +238,18 @@ export const uploadVideoMedia = async (c: Context) => {
 
 
         // SHA256 checksum
-        const checksum = crypto
-            .createHash("sha256")
-            .update(buffer)
-            .digest("hex")
+        // const checksum = crypto
+        //     .createHash("sha256")
+        //     .update(buffer)
+        //     .digest("hex")
 
-        const existing = await db.media.findUnique({
-            where: { checksum }
-        })
+        // const existing = await db.media.findUnique({
+        //     where: { checksum }
+        // })
 
-        if (existing) {
-            return c.json({ error: "File already exists" }, 400)
-        }
+        // if (existing) {
+        //     return c.json({ error: "File already exists" }, 400)
+        // }
 
         // Create upload directory
         const uploadDir = path.join(process.cwd(), "uploads", projectName)
@@ -285,7 +285,7 @@ export const uploadVideoMedia = async (c: Context) => {
                 name: file.name,
                 url: storageKey,
                 mimeType: file.type,
-                checksum,
+                // checksum,
                 thumbhash,
                 blurDataUrl,
                 videoThumbnail: thumbnailKey
