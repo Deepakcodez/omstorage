@@ -108,6 +108,9 @@ export const uploadImageMedia = async (c: Context) => {
 }
 
 
+
+
+
 export const uploadMultipleImageMedia = async (c: Context) => {
     try {
         const formData = await c.req.formData()
@@ -132,10 +135,10 @@ export const uploadMultipleImageMedia = async (c: Context) => {
             const buffer = Buffer.from(await file.arrayBuffer())
 
             // SHA256 checksum
-            const checksum = crypto
-                .createHash("sha256")
-                .update(buffer)
-                .digest("hex")
+            // const checksum = crypto
+            //     .createHash("sha256")
+            //     .update(buffer)
+            //     .digest("hex")
 
             // const existing = await db.media.findUnique({
             //     where: { checksum }
