@@ -669,8 +669,8 @@
                 modalMedia.innerHTML = `<img src="${API_BASE}${url}" alt="Media">`;
             } else {
                 modalMedia.innerHTML = `
-                    <video controls autoplay>
-                        <source src="${API_BASE}${url}" type="video/mp4">
+                    <video controls autoplay preload="metadata">
+                        <source src="${API_BASE}/api/media/video/id/${id}" type="video/mp4">
                         Your browser does not support the video tag.
                     </video>
                 `;

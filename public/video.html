@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Video Stream Debug</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #111;
+            color: white;
+        }
+
+        video {
+            width: 900px;
+            max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .box {
+            background: #1e1e1e;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Video Streaming Debug</h1>
+
+    <video controls preload="metadata" src="http://localhost:8000/api/media/video/uploads/static_v2/013 Challenge 3 Solution.mp4-1e4774c1-3bfc-4f21-94ef-7f4634ee8463.mp4">
+    </video>
+
+    <div class="box">
+        <h2>Fetch Stream Stats</h2>
+
+        <pre id="stats">Loading...</pre>
+    </div>
+
+    <div class="box">
+        <h2>Playback Stats</h2>
+
+        <pre id="playback">Waiting...</pre>
+    </div>
+
+    <script>
+        const VIDEO_URL =
+            "http://localhost:8000/api/media/video/long_video.mp4";
+
+        const statsEl =
+            document.getElementById("stats");
+
+        const playbackEl =
+            document.getElementById("playback");
+
+        async function debugStream() {
+            const response = await fetch(VIDEO_URL);
+
+            const reader =
+                response.body.getReader();
+
+            let totalBytes = 0;
+
+            const startedAt = performance.now();
+
+            const headers = {};
+
+            response.headers.forEach((value, key) => {
+                headers[key] = value;
+            });
+
+            statsEl.textContent =
+                "STATUS: " + response.status + "\n\n" +
+                "HEADERS:\n" +
+                JSON.stringify(headers, null, 2) +
+                "\n\nStreaming...\n";
+
+            while (true) {
+                const { done, value } =
+                    await reader.read();
+
+                if (done) {
+                    break;
+                }
+
+                totalBytes += value.length;
+
+                const seconds =
+                    (performance.now() - startedAt) / 1000;
+
+                const speed =
+                    (totalBytes / 1024 / 1024 / seconds)
+                        .toFixed(2);
+
+                statsEl.textContent =
+                    "STATUS: " + response.status + "\n\n" +
+                    "HEADERS:\n" +
+                    JSON.stringify(headers, null, 2) +
+                    "\n\n" +
+                    "Downloaded: " +
+                    (totalBytes / 1024 / 1024).toFixed(2) +
+                    " MB\n" +
+                    "Speed: " +
+                    speed +
+                    " MB/s\n" +
+                    "Streaming Active: YES";
+            }
+
+            statsEl.textContent +=
+                "\n\nStream Finished";
+        }
+
+        debugStream();
+
+        const video =
+            document.getElementById("video");
+
+        setInterval(() => {
+            playbackEl.textContent =
+                JSON.stringify(
+                    {
+                        currentTime:
+                            video.currentTime.toFixed(2),
+
+                        duration:
+                            video.duration.toFixed(2),
+
+                        paused:
+                            video.paused,
+
+                        seeking:
+                            video.seeking,
+
+                        buffered:
+                            video.buffered.length
+                                ? {
+                                    start:
+                                        video.buffered
+                                            .start(0)
+                                            .toFixed(2),
+
+                                    end:
+                                        video.buffered
+                                            .end(0)
+                                            .toFixed(2),
+                                }
+                                : null,
+
+                        networkState:
+                            video.networkState,
+
+                        readyState:
+                            video.readyState,
+                    },
+                    null,
+                    2
+                );
+        }, 500);
+    </script>
+
+</body>
+
+</html>

@@ -12,7 +12,7 @@ app.use("*", cors({
     origin: ["*", "http://localhost:3000", "https://omagine.app"],
     allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
     allowMethods: ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
+    exposeHeaders: ["Content-Length", "Content-Range", "Accept-Ranges"],
     // credentials: true,
 }));
 
@@ -37,6 +37,12 @@ app.get('/', (c) => {
 
 app.get('/gallery', galleryAuthMiddleware, async (c) => {
     return c.html(await Bun.file('./public/gallery.html').text())
+})
+app.get('/video', async (c) => {
+    return c.html(await Bun.file('./public/video.html').text())
+})
+app.get('/upload-dashboard', async (c) => {
+    return c.html(await Bun.file('./public/upload-dashboard.html').text())
 })
 
 app.route('/api', routes)

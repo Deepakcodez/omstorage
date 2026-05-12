@@ -2,7 +2,9 @@ import type { Context } from "hono"
 import { db } from "../lib/prisma"
 import sharp from "sharp"
 import { rgbaToThumbHash } from "thumbhash"
-import { mkdir, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, stat, writeFile } from "node:fs/promises";
+import { Readable } from "node:stream";
 import path from "node:path";
 import crypto from "node:crypto"
 import ffmpeg from "fluent-ffmpeg"
@@ -93,7 +95,7 @@ export const uploadImageMedia = async (c: Context) => {
             message: "Image uploaded successfully",
             success: true,
             data: {
-                imageId : media.id,
+                imageId: media.id,
                 name: media.name,
                 url: media.url,
                 thumbhash: media.thumbhash,
@@ -194,7 +196,7 @@ export const uploadMultipleImageMedia = async (c: Context) => {
                 })
 
                 results.push({
-                    imageId : media.id,
+                    imageId: media.id,
                     name: media.name,
                     url: media.url,
                     thumbhash: media.thumbhash,
@@ -299,7 +301,7 @@ export const uploadVideoMedia = async (c: Context) => {
             message: "Video uploaded successfully",
             success: true,
             data: {
-                videoId : media.id,
+                videoId: media.id,
                 name: media.name,
                 url: media.url,
                 videoThumbnail: media.videoThumbnail,
@@ -433,3 +435,182 @@ export const deleteMedia = async (c: Context) => {
         return c.json({ error: "Failed to delete media" }, 500)
     }
 }
+
+
+
+
+const streamVideoFile = async (c: Context, videoPath: string, mimeType = "video/mp4") => {
+    const file = Bun.file(videoPath);
+
+    if (!(await file.exists())) {
+        return c.json({ error: "Video not found" }, 404);
+    }
+
+    const { size } = await stat(videoPath);
+    const range = c.req.header("range");
+
+    if (!range) {
+        return new Response(file, {
+            status: 200,
+            headers: {
+                "Accept-Ranges": "bytes",
+                "Content-Type": mimeType,
+                "Content-Length": size.toString(),
+            },
+        });
+    }
+
+    const match = range.match(/^bytes=(\d*)-(\d*)$/);
+
+    if (!match) {
+        return new Response(null, {
+            status: 416,
+            headers: {
+                "Content-Range": `bytes */${size}`,
+            },
+        });
+    }
+
+    const start = match[1] ? Number(match[1]) : 0;
+    const end = match[2] ? Number(match[2]) : size - 1;
+
+    if (
+        Number.isNaN(start) ||
+        Number.isNaN(end) ||
+        start < 0 ||
+        end < start ||
+        start >= size
+    ) {
+        return new Response(null, {
+            status: 416,
+            headers: {
+                "Content-Range": `bytes */${size}`,
+            },
+        });
+    }
+
+    const safeEnd = Math.min(end, size - 1);
+    const chunkSize = safeEnd - start + 1;
+    const stream = Readable.toWeb(createReadStream(videoPath, {
+        start,
+        end: safeEnd,
+    })) as ReadableStream;
+
+    return new Response(stream, {
+        status: 206,
+        headers: {
+            "Content-Range": `bytes ${start}-${safeEnd}/${size}`,
+            "Accept-Ranges": "bytes",
+            "Content-Length": chunkSize.toString(),
+            "Content-Type": mimeType,
+        },
+    });
+}
+
+export const StreamedVideoById = async (c: Context) => {
+    try {
+        const { id } = c.req.param();
+        const media = await db.media.findUnique({
+            where: { id }
+        });
+
+        if (!media || media.type !== "VIDEO") {
+            return c.json({ error: "Video not found" }, 404);
+        }
+
+        const uploadsDir = path.join(process.cwd(), "uploads");
+        const videoPath = path.resolve(process.cwd(), `.${media.url}`);
+
+        if (!videoPath.startsWith(path.resolve(uploadsDir))) {
+            return c.json({ error: "Invalid video path" }, 400);
+        }
+
+        return streamVideoFile(c, videoPath, media.mimeType || "video/mp4");
+    } catch (error) {
+        console.error(error)
+        return c.json({ error: "Failed to stream video" }, 500)
+    }
+}
+
+export const StreamedVideoByProjectAndName = async (c: Context) => {
+    try {
+        const project = decodeURIComponent(c.req.param("project"));
+        const name = decodeURIComponent(c.req.param("name"));
+
+        if (project !== path.basename(project) || name !== path.basename(name)) {
+            return c.json({ error: "Invalid video path" }, 400);
+        }
+
+        const videoPath = path.join(process.cwd(), "uploads", project, name);
+        return streamVideoFile(c, videoPath);
+    } catch (error) {
+        console.error(error)
+        return c.json({ error: "Failed to stream video" }, 500)
+    }
+}
+
+export const StreamedVideoByName = async (
+  c: Context
+) => {
+  try {
+    const relativePath =
+      decodeURIComponent(
+        c.req.path.replace(
+          "/api/media/stream/video/",
+          ""
+        )
+      );
+
+    console.log(
+      "relativePath -->",
+      relativePath
+    );
+
+    if (!relativePath) {
+      return c.json(
+        { error: "Invalid video path" },
+        400
+      );
+    }
+
+    // uploads root
+    const uploadsDir = path.resolve(
+      process.cwd(),
+      "uploads"
+    );
+
+    // final absolute file path
+    const videoPath = path.resolve(
+      process.cwd(),
+      relativePath
+    );
+
+    console.log(
+      "video path -->",
+      videoPath
+    );
+
+    // SECURITY CHECK
+    if (!videoPath.startsWith(uploadsDir)) {
+      return c.json(
+        { error: "Invalid path" },
+        400
+      );
+    }
+
+    return streamVideoFile(
+      c,
+      videoPath
+    );
+  } catch (error) {
+    console.error(error);
+
+    return c.json(
+      {
+        error:
+          "Failed to stream video",
+      },
+      500
+    );
+  }
+};

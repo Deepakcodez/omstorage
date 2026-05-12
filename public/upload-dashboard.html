@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Media</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f6f7f9;
+            color: #171a1f;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        main {
+            width: min(1120px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 32px 0;
+        }
+
+        header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .folder {
+            margin-top: 8px;
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .folder code {
+            color: #344054;
+            background: #eaecf0;
+            border-radius: 6px;
+            padding: 3px 7px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 420px) 1fr;
+            gap: 20px;
+        }
+
+        section {
+            background: #ffffff;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(16, 24, 40, 0.05);
+        }
+
+        .panel {
+            padding: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        input[type="password"],
+        input[type="file"] {
+            width: 100%;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            background: #ffffff;
+            color: #101828;
+            font: inherit;
+            padding: 11px 12px;
+        }
+
+        input[type="file"] {
+            cursor: pointer;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .dropzone {
+            display: grid;
+            place-items: center;
+            min-height: 180px;
+            margin-bottom: 16px;
+            border: 1px dashed #98a2b3;
+            border-radius: 8px;
+            background: #f9fafb;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .dropzone.dragover {
+            border-color: #1570ef;
+            background: #eff8ff;
+        }
+
+        .drop-title {
+            margin: 0 0 6px;
+            font-weight: 800;
+        }
+
+        .drop-subtitle {
+            margin: 0;
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .preview {
+            display: none;
+            margin-top: 16px;
+            overflow: hidden;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            background: #101828;
+        }
+
+        .preview img,
+        .preview video {
+            display: block;
+            width: 100%;
+            max-height: 320px;
+            object-fit: contain;
+        }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            background: #1570ef;
+            color: white;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 800;
+            padding: 11px 14px;
+        }
+
+        button:hover {
+            background: #175cd3;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            background: #98a2b3;
+        }
+
+        .secondary {
+            background: #eef4ff;
+            color: #175cd3;
+        }
+
+        .secondary:hover {
+            background: #d1e0ff;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .status {
+            min-height: 22px;
+            margin-top: 14px;
+            color: #667085;
+            font-size: 14px;
+        }
+
+        .status.error {
+            color: #b42318;
+        }
+
+        .status.success {
+            color: #067647;
+        }
+
+        .result {
+            display: grid;
+            gap: 12px;
+        }
+
+        .copy-row {
+            display: grid;
+            grid-template-columns: 150px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .copy-row strong {
+            color: #344054;
+            font-size: 13px;
+        }
+
+        .copy-value {
+            overflow: hidden;
+            color: #475467;
+            font-family: "Cascadia Code", Consolas, monospace;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        pre {
+            min-height: 280px;
+            overflow: auto;
+            margin: 0;
+            border: 1px solid #e4e7ec;
+            border-radius: 8px;
+            background: #101828;
+            color: #ecfdf3;
+            font-family: "Cascadia Code", Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.55;
+            padding: 16px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        @media (max-width: 860px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .copy-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <header>
+            <div>
+                <h1>Upload Media</h1>
+                <div class="folder">Folder: <code>uploads/static_v2</code></div>
+            </div>
+            <button class="secondary" id="clearBtn" type="button">Clear</button>
+        </header>
+
+        <div class="grid">
+            <section class="panel">
+                <div class="dropzone" id="dropzone">
+                    <div>
+                        <p class="drop-title">Drop image or video</p>
+                        <p class="drop-subtitle">Images use the image API. Videos use the video API.</p>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="fileInput">Media file</label>
+                    <input id="fileInput" type="file" accept="image/*,video/*">
+                </div>
+
+                <div class="field">
+                    <label for="secretInput">Upload secret</label>
+                    <input id="secretInput" type="password" placeholder="x-upload-secret">
+                </div>
+
+                <div class="actions">
+                    <button id="uploadBtn" type="button">Upload</button>
+                </div>
+
+                <div class="status" id="status"></div>
+
+                <div class="preview" id="preview"></div>
+            </section>
+
+            <section class="panel result">
+                <div id="copyFields"></div>
+                <pre id="jsonOutput">Upload response will appear here.</pre>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const PROJECT = "static_v2";
+        const secretKey = "omstorage-upload-secret";
+
+        const fileInput = document.getElementById("fileInput");
+        const secretInput = document.getElementById("secretInput");
+        const uploadBtn = document.getElementById("uploadBtn");
+        const clearBtn = document.getElementById("clearBtn");
+        const statusEl = document.getElementById("status");
+        const previewEl = document.getElementById("preview");
+        const dropzone = document.getElementById("dropzone");
+        const copyFields = document.getElementById("copyFields");
+        const jsonOutput = document.getElementById("jsonOutput");
+
+        secretInput.value = localStorage.getItem(secretKey) || "";
+
+        const setStatus = (message, type = "") => {
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        };
+
+        const getResultData = (responseJson) => responseJson && responseJson.data ? responseJson.data : {};
+
+        const copyText = async (value, button) => {
+            await navigator.clipboard.writeText(value);
+            const previous = button.textContent;
+            button.textContent = "Copied";
+            setTimeout(() => {
+                button.textContent = previous;
+            }, 1200);
+        };
+
+        const addCopyRow = (label, value) => {
+            if (!value) return;
+
+            const row = document.createElement("div");
+            row.className = "copy-row";
+
+            const name = document.createElement("strong");
+            name.textContent = label;
+
+            const text = document.createElement("div");
+            text.className = "copy-value";
+            text.title = value;
+            text.textContent = value;
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "secondary";
+            button.textContent = "Copy";
+            button.addEventListener("click", () => copyText(value, button));
+
+            row.append(name, text, button);
+            copyFields.appendChild(row);
+        };
+
+        const renderResponse = (responseJson) => {
+            const data = getResultData(responseJson);
+            const assetUrl = data.url ? `${API_BASE}${data.url}` : "";
+            const streamUrl = data.videoId ? `${API_BASE}/api/media/video/id/${data.videoId}` : "";
+            const thumbnailUrl = data.videoThumbnail ? `${API_BASE}${data.videoThumbnail}` : "";
+
+            copyFields.innerHTML = "";
+            addCopyRow("URL", assetUrl);
+            addCopyRow("Stream URL", streamUrl);
+            addCopyRow("Thumbnail URL", thumbnailUrl);
+            addCopyRow("Thumbhash", data.thumbhash);
+            addCopyRow("Blur Data URL", data.blurDataUrl);
+
+            jsonOutput.textContent = JSON.stringify(responseJson, null, 2);
+        };
+
+        const resetPreview = () => {
+            previewEl.style.display = "none";
+            previewEl.innerHTML = "";
+        };
+
+        const showPreview = (file) => {
+            resetPreview();
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+            const media = document.createElement(file.type.startsWith("video/") ? "video" : "img");
+
+            if (media.tagName === "VIDEO") {
+                media.controls = true;
+                media.preload = "metadata";
+            }
+
+            media.src = url;
+            media.onload = media.onloadedmetadata = () => URL.revokeObjectURL(url);
+            previewEl.appendChild(media);
+            previewEl.style.display = "block";
+        };
+
+        const setFile = (file) => {
+            if (!file) return;
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            fileInput.files = transfer.files;
+            showPreview(file);
+        };
+
+        fileInput.addEventListener("change", () => {
+            showPreview(fileInput.files[0]);
+        });
+
+        dropzone.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("dragover");
+        });
+
+        dropzone.addEventListener("drop", (event) => {
+            event.preventDefault();
+            dropzone.classList.remove("dragover");
+            setFile(event.dataTransfer.files[0]);
+        });
+
+        clearBtn.addEventListener("click", () => {
+            fileInput.value = "";
+            copyFields.innerHTML = "";
+            jsonOutput.textContent = "Upload response will appear here.";
+            resetPreview();
+            setStatus("");
+        });
+
+        uploadBtn.addEventListener("click", async () => {
+            const file = fileInput.files[0];
+            const secret = secretInput.value.trim();
+
+            if (!file) {
+                setStatus("Choose an image or video first.", "error");
+                return;
+            }
+
+            if (!secret) {
+                setStatus("Enter the upload secret.", "error");
+                return;
+            }
+
+            const isImage = file.type.startsWith("image/");
+            const isVideo = file.type.startsWith("video/");
+
+            if (!isImage && !isVideo) {
+                setStatus("Only image and video files are supported.", "error");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("project", PROJECT);
+
+            const endpoint = isVideo
+                ? `${API_BASE}/api/media/upload/single/video`
+                : `${API_BASE}/api/media/upload/single/image`;
+
+            uploadBtn.disabled = true;
+            localStorage.setItem(secretKey, secret);
+            setStatus("Uploading...");
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "x-upload-secret": secret,
+                    },
+                    body: formData,
+                });
+                const responseJson = await response.json();
+
+                renderResponse(responseJson);
+                setStatus(response.ok ? "Upload complete." : "Upload failed.", response.ok ? "success" : "error");
+            } catch (error) {
+                const errorResponse = {
+                    success: false,
+                    error: error instanceof Error ? error.message : "Upload failed",
+                };
+                renderResponse(errorResponse);
+                setStatus("Upload failed.", "error");
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
