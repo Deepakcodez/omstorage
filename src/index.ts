@@ -31,6 +31,7 @@ app.use("/public/*", serveStatic({
     root: "./"
 }))
 
+
 app.get('/', (c) => {
     return c.json({ message: 'Media Service Running 🚀' })
 })
