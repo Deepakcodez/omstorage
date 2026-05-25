@@ -8,18 +8,36 @@ const app = new Hono()
 
 const port = Number(process.env.PORT) || 8000
 // this is from client
-app.use("*", cors({
-    origin: ["*", "http://localhost:3000", "https://omagine.app"],
-    allowHeaders: ["Content-Type", "Authorization", "x-upload-secret"],
-    allowMethods: ["POST", "GET", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length", "Content-Range", "Accept-Ranges"],
-    // credentials: true,
-}));
+app.use(
+    "*",
+    cors({
+        origin: "*",
+        allowHeaders: [
+            "Content-Type",
+            "Authorization",
+            "x-upload-secret",
+            "Range",
+        ],
+        allowMethods: [
+            "POST",
+            "GET",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS",
+        ],
+        exposeHeaders: [
+            "Content-Length",
+            "Content-Range",
+            "Accept-Ranges",
+        ],
+    })
+);
 
 app.use("/uploads/*", async (c, next) => {
-  await next();
-  c.header('Access-Control-Allow-Origin', '*'); // Or your specific domain
-  c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    await next();
+    c.header('Access-Control-Allow-Origin', '*'); // Or your specific domain
+    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
 });
 
 app.use("/uploads/*", serveStatic({
